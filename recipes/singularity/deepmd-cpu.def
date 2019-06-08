@@ -1,5 +1,7 @@
-BootStrap: library
-From: centos:latest
+#BootStrap: library
+#From: centos:latest
+BootStrap: localimage
+From: /160GB/images/centos_7.6.1810.sif
 
 %labels
     Author acyang
@@ -125,7 +127,7 @@ From: centos:latest
 
     make lammps
     cd /root
-    #git clone https://github.com/lammps/lammps lammps --depth=1
+    #git clone https://github.com/lammps/lammps.git --depth=1
     wget https://github.com/lammps/lammps/archive/master.zip
     unzip master.zip
     mv lammps-master lammps
