@@ -1,0 +1,33 @@
+#BootStrap: library
+#From: library/default/centos:latest
+BootStrap: localimage
+From: /160GB/images/centos_7.6.1810.sif
+
+%labels
+    Author acyang
+    Version v0.0.1
+
+%files
+    repo/conda.repo /etc/yum.repos.d/
+
+%post -c /bin/bash
+    ###Add additional repo to yum
+    yum makecache
+    yum install -y epel-release centos-release-scl
+    #rpm -i http://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-repo-rhel7-10.0.130-1.x86_64.rpm
+
+    ###install compiler tool for tensorflow
+    yum install -y automake autoconf bzip2 cmake cmake3 devtoolset-7-gcc* git gcc gcc-c++ gcc-gfortran libtool make patch scl-utils unzip zip vim wget python36 python36-devel python36-libs python36-pip python36-setuptools python36-virtualenv openmpi3 openmpi3-devel java-1.8.0-openjdk java-1.8.0-openjdk-devel java-1.8.0-openjdk-headless eigen3-devel conda
+    ln -s /usr/include/openmpi3-x86_64/ /usr/lib64/openmpi3/include
+
+    ###install NVIDIA Machine Learning repository and nccl and tensorrt
+    yum install -y https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-repo-rhel7-10.0.130-1.x86_64.rpm
+    yum install -y cuda-10.0.130-1
+    yum install -y https://developer.download.nvidia.com/compute/machine-learning/repos/rhel7/x86_64/nvidia-machine-learning-repo-rhel7-1.0.0-1.x86_64.rpm
+    yum install -y libcudnn7-7.6.0.64-1.cuda10.0 libcudnn7-devel-7.6.0.64-1.cuda10.0 libnccl-2.4.7-1+cuda10.0 libnccl-devel-2.4.7-1+cuda10.0 libnccl-static-2.4.7-1+cuda10.0 libnvinfer5-5.1.5-1.cuda10.0 libnvinfer-devel-5.1.5-1.cuda10.0
+
+    yum clean all
+    rm -rf /root/.cache
+    rm -rf /var/cache/yum/*
+%environment
+
