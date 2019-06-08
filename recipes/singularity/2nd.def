@@ -1,0 +1,95 @@
+BootStrap: localimage
+From: /160GB/images/1st.sif
+
+%labels
+    Author acyang
+    Version v0.0.1
+
+%files
+    bazel-0.24.1-dist.zip /root
+    answer/tf-1.14-gpu /root
+    tensorflow-r1.14.zip /root
+    xdrfile-1.1.4.tar.gz /root
+    lammps-master.zip /root
+    find_cuda_config.py /root
+    int128_have_intrinsic.inc /root
+
+%post -c /bin/bash
+    tf_ver=1.14
+    bazel_ver=0.24.1
+    tensorflow_root=/opt/tensorflow
+    xdrfile_root=/opt/xdrfile
+    lammps_root=/opt/lammps
+    deepmd_root=/opt/deepmd
+    deepmd_source_dir=/root/deepmd-kit
+
+    source /opt/rh/devtoolset-7/enable
+
+    ###install bazel
+    cd /root
+    unzip bazel-${bazel_ver}-dist.zip -d bazel
+    cd bazel
+    env EXTRA_BAZEL_ARGS="--host_javabase=@local_jdk//:jdk" bash ./compile.sh
+    mv output/bazel /usr/bin
+
+    ###Download tensorflow source code
+    cd /root
+    unzip tensorflow-r${tf_ver}.zip 
+    mv tensorflow-r${tf_ver} tensorflow
+    mv /root/tf-${tf_ver}-* /root/tensorflow
+    mv -f /root/find_cuda_config.py /root/tensorflow/third_party/gpus
+
+    mkdir -p $tensorflow_root/{lib,include/tensorflow}
+    ###download the dependencies of tensorflow, including Protobuf, Eigen, nsync and absl. This script should be run in the root folder of tensorflow.
+    cd /root/tensorflow/
+    tensorflow/contrib/makefile/download_dependencies.sh
+
+    ###build Protobuf.
+    cd /root/tensorflow/tensorflow/contrib/makefile/downloads/protobuf/
+    ./autogen.sh
+    ./configure --prefix=/tmp/proto/
+    make -j8
+    make install
+    cp /tmp/proto/lib/libprotobuf.a $tensorflow_root/lib/
+    cp -r /tmp/proto/include/* $tensorflow_root/include
+
+    ###build Eigen.
+    #cd /root/tensorflow/tensorflow/contrib/makefile/downloads/eigen
+    #mkdir build_dir
+    #cd build_dir
+    #cmake -DCMAKE_INSTALL_PREFIX=/tmp/eigen/ ../
+    #make install
+    cp -r /usr/include/eigen3/* $tensorflow_root/include
+
+    ###build nsync.
+    cd /root/tensorflow/tensorflow/contrib/makefile/downloads/nsync
+    mkdir build_dir
+    cd build_dir
+    cmake -DCMAKE_INSTALL_PREFIX=/tmp/nsync/ ../
+    make -j8
+    make install
+    cp /tmp/nsync/lib64/libnsync.a $tensorflow_root/lib/
+    cp -r /tmp/nsync/include/*h $tensorflow_root/include
+
+    cd /root/tensorflow/tensorflow/contrib/makefile/downloads/absl
+    bazel build
+    rsync -avzh --include '*/' --include '*.h' --exclude '*' absl $tensorflow_root/include/
+    mv /root/int128_have_intrinsic.inc $tensorflow_root/include/absl/numeric/
+
+    cd $tensorflow_root/include
+    find . -name "*.cc" -type f -delete
+    rm -fr /tmp/{proto,eigen,nsync,absl}
+
+    ###Install xdrfile
+    cd /root
+    #wget ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.4.tar.gz
+    tar -zxv -f xdrfile-1.1.4.tar.gz
+    cd xdrfile-1.1.4
+    ./configure --prefix=$xdrfile_root
+    make -j4
+    make install
+
+    rm -f /root/bazel-${bazel_ver}-dist.zip /root/tensorflow-r${tf_ver}.zip /root/xdrfile-1.1.4.tar.gz 
+    rm -rf /root/.cache /root/bazel /root/xdrfile-1.1.4
+%environment
+
