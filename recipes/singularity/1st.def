@@ -1,7 +1,7 @@
 #BootStrap: library
 #From: library/default/centos:latest
 BootStrap: localimage
-From: /160GB/images/centos_7.6.1810.sif
+From: /160GB/images/image/centos_7.6.1810.sif
 
 %labels
     Author acyang
@@ -9,16 +9,33 @@ From: /160GB/images/centos_7.6.1810.sif
 
 %files
     repo/conda.repo /etc/yum.repos.d/
+    repo/intelproducts.repo /etc/yum.repos.d/
 
 %post -c /bin/bash
     ###Add additional repo to yum
-    yum makecache
     yum install -y epel-release centos-release-scl
-    #rpm -i http://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-repo-rhel7-10.0.130-1.x86_64.rpm
 
     ###install compiler tool for tensorflow
-    yum install -y automake autoconf bzip2 cmake cmake3 devtoolset-7-gcc* git gcc gcc-c++ gcc-gfortran libtool make patch scl-utils unzip zip vim wget python36 python36-devel python36-libs python36-pip python36-setuptools python36-virtualenv openmpi3 openmpi3-devel java-1.8.0-openjdk java-1.8.0-openjdk-devel java-1.8.0-openjdk-headless eigen3-devel conda
+    yum install -y automake autoconf bzip2 cmake cmake3 devtoolset-7-gcc* git gcc gcc-c++ gcc-gfortran libtool make patch scl-utils unzip zip vim wget openmpi3 openmpi3-devel java-1.8.0-openjdk java-1.8.0-openjdk-devel java-1.8.0-openjdk-headless eigen3-devel conda
     ln -s /usr/include/openmpi3-x86_64/ /usr/lib64/openmpi3/include
+
+    source /opt/rh/devtoolset-7/enable
+
+    ###install intel-python and intel-tensorflow
+    yum install -y intelpython3
+
+    cd /root
+    git clone https://github.com/01org/mkl-dnn.git --depth=1
+    cd mkl-dnn/scripts
+    ./prepare_mkl.sh
+    cd ..
+    mkdir -p build
+    cd build
+    cmake -DCMAKE_INSTALL_PREFIX=/opt/intel/mkl-dnn ..
+    make -j8
+    make install
+    export PATH="/opt/intel/intelpython3/bin":${PATH}
+    export LD_LIBRARY_PATH="/opt/intel/mkl-dnn/lib64":${LD_LIBRARY_PATH}
 
     ###install NVIDIA Machine Learning repository and nccl and tensorrt
     yum install -y https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-repo-rhel7-10.0.130-1.x86_64.rpm
@@ -30,4 +47,5 @@ From: /160GB/images/centos_7.6.1810.sif
     rm -rf /root/.cache
     rm -rf /var/cache/yum/*
 %environment
-
+    PATH="/opt/intel/intelpython3/bin":${PATH}
+    LD_LIBRARY_PATH="/opt/intel/mkl-dnn/lib64":${LD_LIBRARY_PATH}
